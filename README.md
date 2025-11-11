@@ -1,13 +1,13 @@
 # Postgres-CRUD
 ---
 
-# To install the requirements use:
+### To install the requirements use:
 ```
     make install
 ```
 ---
 
-# To run the application use:
+### To run the application use:
 ```
     make run
 ```
