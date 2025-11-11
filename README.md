@@ -1,2 +1,13 @@
 # Postgres-CRUD
-This is a simple crud that stores data using postgres-sql.
+---
+
+# To install the requirements use:
+```
+    make install
+```
+---
+
+# To run the application use:
+```
+    make run
+```
