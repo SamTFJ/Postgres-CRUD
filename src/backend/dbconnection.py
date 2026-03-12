@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 import os
 # Biblioteca para comandos assíncronos
 import asyncio
+# Para conectar com o Supabase
+from supabase import create_client, Client
 
 # Carrega as variáveis do arquivo .env
 load_dotenv(".env",override = True)
@@ -14,21 +16,33 @@ load_dotenv(".env",override = True)
 class dbconnection:
     def __init__(self):
         # Inicializa os atributos como None para evitar erros caso a conexão falhe
+        self.supabase: Client = None
         self.conn = None
         self.cur = None
 
         # Tenta estabelecer a conexão com o banco de dados
         try:
+            # Versão com o postgresql normal
+            # self.conn = psycopg2.connect(
+            #     dbname= os.getenv("db_name"),
+            #     user=os.getenv("db_user"),
+            #     password=os.getenv("db_password"),
+            #     host=os.getenv("db_host"),
+            #     port=os.getenv("db_port")
+            # )
+
+            # Versão com o Supabase
+            url = os.getenv("supabase_url")
+            key = os.getenv("supabase_key")
+            
+            self.supabase = create_client(url, key)
+
             self.conn = psycopg2.connect(
-                dbname= os.getenv("db_name"),
-                user=os.getenv("db_user"),
-                password=os.getenv("db_password"),
-                host=os.getenv("db_host"),
-                port=os.getenv("db_port")
+                os.getenv("supabase_db_url")
             )
         
         except (Exception, psycopg2.Error) as error:
-            print("\n--> Error while connecting to PostgreSQL: ", error)
+            print("\n--> Error while connecting to Supabase: ", error)
 
         # Tenta criar um cursor para executar comandos SQL
         try:
@@ -87,9 +101,9 @@ if __name__ == "__main__":
     # Exemplo de query que busca dados
     query2 = sql.SQL("""SELECT * FROM item;""")
 
-    db.execute_command(query2)
+    db.execute_command(query)
     for item in db.cur.fetchall():
-        print("+-------+")
+        print("+---------------+")
         for items in item:
             if items == item[0]:
                 print("|", items, "   |")

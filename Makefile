@@ -3,6 +3,7 @@ export $(shell sed 's/=.*//' .env)
 
 VENV_ACTIVATE = source $(shell pwd)/.venv/bin/activate
 SERVER = streamlit run src/Home.py
+TEST = .venv/bin/python3 -m src.backend.dbconnection
 
 install:
 	python3 -m venv .venv
@@ -10,5 +11,11 @@ install:
 
 run:
 # 	Para acrescentar um log
-	bash -c '$(VENV_ACTIVATE) && $(SERVER)' > server.log 2>&1 &
-# 	bash -c '$(VENV_ACTIVATE) && $(SERVER)'
+# 	bash -c '$(VENV_ACTIVATE) && $(SERVER)' > server.log 2>&1 &
+	bash -c '$(VENV_ACTIVATE) && $(SERVER)'
+
+clean:
+	rm -f server.log
+
+test:
+	bash -c '$(TEST)'
