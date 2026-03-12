@@ -5,8 +5,6 @@ from psycopg2 import sql
 from dotenv import load_dotenv
 # Importa o módulo 'os' para interagir com o sistema operacional e pegar as variáveis
 import os
-# Biblioteca para comandos assíncronos
-import asyncio
 # Para conectar com o Supabase
 from supabase import create_client, Client
 
@@ -40,21 +38,17 @@ class dbconnection:
             self.conn = psycopg2.connect(
                 os.getenv("supabase_db_url")
             )
-        
+            self.cur = self.conn.cursor()
+
         except (Exception, psycopg2.Error) as error:
             print("\n--> Error while connecting to Supabase: ", error)
 
-        # Tenta criar um cursor para executar comandos SQL
-        try:
-            self.cur = self.conn.cursor()
-
-        except psycopg2.Error as error:
-            print("\n--> Couldn't create the cursor")
-
     # Encerrar as conexões com o banco de dados
     def end_connection(self):
-        self.cur.close()
-        self.conn.close()
+        if self.cur:
+            self.cur.close()
+        if self.conn:
+            self.conn.close()
 
     # Executa um comando de SQL (INSERT, UPDATE, DELETE)
     def execute_command(self, sqlcommand, Params = None):
