@@ -10,6 +10,9 @@ if root_dir not in sys.path:
 from src.backend.login import login
 from src.backend.register import register
 import src.backend.estoque as estoque
+import src.backend.financeiro as fin
+from src.backend.produtos import Salgado, Bebida
+manager = estoque.EstoqueManager()
 
 st.set_page_config(
     page_title="Estoque",
@@ -21,7 +24,7 @@ def menu_vendedor():
 
     #abas principais
 
-    aba_cadastro, aba_atualizar, aba_exibir ,aba_alerta= st.tabs(["📝 Cadastrar", "🚛 Reabastecer", "🔍 Pesquisar/Vizualizar", " ⚠️ Estoque Baixo"])
+    aba_cadastro,aba_remover,aba_atualizar, aba_exibir ,aba_editar, aba_alerta= st.tabs(["📝 Cadastrar Produto"," ❌ Remover Produto" ,"🚛 Reabastecer", "🔍 Pesquisar/Vizualizar","✏️ Editar Produto", " ⚠️ Estoque Baixo"])
 
     with aba_cadastro:
     #pills dentro das abas
@@ -43,7 +46,7 @@ def menu_vendedor():
 
                 if st.form_submit_button("Adicionar Salgado"):
                     if nome.strip() and sabor.strip() and valor > 0:
-                        if estoque.adicionar_salgado(nome,sabor,valor,quantia):
+                        if manager.adicionar_salgado(nome,sabor,valor,quantia):
                             st.success(f"{nome} adicionado com sucesso!")
                         else:
                             st.error("❌ Erro ao adicionar salgado!")
@@ -60,7 +63,7 @@ def menu_vendedor():
 
                 if st.form_submit_button("Adicionar Bebida"):
                     if nomeb.strip() and saborb.strip() and valorb > 0:
-                        if estoque.adicionar_bebida(nomeb,saborb,valorb,quantiab):
+                        if manager.adicionar_bebida(nomeb,saborb,valorb,quantiab):
                             st.success(f"{nomeb} foi adicionada com sucesso")
                         else:
                             st.error("❌ Falha ao acidionar bebida!")
@@ -70,10 +73,11 @@ def menu_vendedor():
     with aba_atualizar:
         st.subheader("🏭 Pedido à Fábrica")
         
-        itens_fabrica = estoque.listar_fabrica()
+        itens_fabrica = manager.listar_fabrica()
+        saldo_em_caixa = fin.saldo_atual()
         
         if itens_fabrica:
-            opcoes = [f"{item[0]} ({item[1]})" for item in itens_fabrica]
+            opcoes = [f"{item.categoria} ({item.nome} {item.sabor})" for item in itens_fabrica]
             escolha = st.selectbox("Selecione o produto da Fábrica", opcoes)
             
             idx = opcoes.index(escolha)
@@ -83,28 +87,39 @@ def menu_vendedor():
             with col1:
                 qtd_compra = st.number_input("Quantidade", min_value=1, step=1, key="qtd_f")
             with col2:
-                preco_custo = float(item_sel[3])
+                preco_custo = float(item_sel.valor)
                 st.text_input("Preço de Custo Unitário", value=f"R$ {preco_custo:.2f}", disabled=True)
             
-            # calculo do total q
             total_financeiro = qtd_compra * preco_custo
-            st.info(f"💰 **Total a ser descontado do caixa: R$ {total_financeiro:.2f}**")
+
+            col_s1, col_s2 = st.columns(2)
+            col_s1.metric("Saldo em Caixa", f"R$ {saldo_em_caixa:.2f}")
+            col_s2.metric("Custo do Pedido", f"R$ {total_financeiro:.2f}", delta=-total_financeiro, delta_color="inverse")
+
+            if total_financeiro > saldo_em_caixa:
+                st.error(f"❌ Saldo insuficiente! Faltam R$ {(total_financeiro - saldo_em_caixa):.2f}")
+                bloquear_botao = True
+            else:
+                st.info(f"💰 **Total a ser descontado do caixa: R$ {total_financeiro:.2f}**")
+                bloquear_botao = False
+
 
             # botão de confirmação com um checkbox de segurança 
-            confirmar = st.checkbox("Confirmo os valores acima")
+            confirmar = st.checkbox("Confirmar os valores acima", disabled=bloquear_botao)
             
-            if st.button("Finalizar Compra", disabled=not confirmar):
-                sucesso = estoque.comprar_da_fabrica(
-                    item_sel[0], item_sel[1], item_sel[2], qtd_compra, preco_custo
+            if st.button("Finalizar Compra", disabled=not confirmar or bloquear_botao):
+                resultado = manager.comprar_da_fabrica(
+                    item_sel.nome, item_sel.sabor,item_sel.categoria ,qtd_compra, preco_custo
                 )
-                
-                if sucesso:
-                    st.toast(f"✅ Compra de {item_sel[0]} realizada!", icon = '💰')
-                    st.success(f"✅ Sucesso! R$ {total_financeiro:.2f} descontados do caixa.")
+            
+                if resultado == True:
+                    st.toast(f"✅ Compra realizada!", icon='💰')
+                    st.success(f"✅ Sucesso! R$ {total_financeiro:.2f} descontados.")
+                    st.rerun()
+                elif resultado == "saldo_insuficiente":
+                    st.error("❌ A operação foi cancelada: O saldo acabou durante o processamento.")
                 else:
-                    st.error("❌ Erro: Este item precisa ser cadastrado antes.")
-        else:
-            st.warning("O catálogo da fábrica está vazio.")
+                    st.error("❌ Este item precisa ter em seu cadastrado antes.")
 
 
     with aba_exibir:
@@ -126,19 +141,26 @@ def menu_vendedor():
         # a exibiçãp é baseada na escolha das pills e da busca
 
         if busca_nome or busca_sabor:
-            dados = estoque.pesquisar_estoque(busca_nome,busca_sabor)
+            dados = manager.pesquisar_estoque(busca_nome,busca_sabor)
         else:
             #se nao ha busca por texto, filtra por categoria
             if filtro_categoria == "Salgados":
-                dados = estoque.listar_salgados()
+                dados = manager.listar_salgados()
             elif filtro_categoria == "Bebidas":
-                dados = estoque.listar_bebidas()
+                dados = manager.listar_bebidas()
             else:
                 #função de UNION para mostrar tudo
-                dados = estoque.pesquisar_estoque("", "")
+                dados = manager.pesquisar_estoque("", "")
         if dados:
             colunas = ["ID", "Nome", "Sabor","Preço (R$)", "Quantia", "Categoria"] #dataframe
-            df = pd.DataFrame(dados, columns=colunas) #transforma df de lista para tabela
+
+            # lista de listas c/ atribusos de cada objeto
+            dados_formatados = [
+                [obj.id, obj.nome, obj.sabor, obj.valor, obj.quantia, obj.categoria] 
+                for obj in dados
+            ]
+
+            df = pd.DataFrame(dados_formatados, columns=colunas) #transforma df de lista para tabela
             st.write(f"Exibindo {len(df)} item(ns):")
             st.dataframe(df, width="stretch")
             
@@ -148,7 +170,7 @@ def menu_vendedor():
 
     with aba_alerta:
         st.write("🚨 Itens Precisando de Reposição")
-        criticos = estoque.listar_estoque_critico()
+        criticos = manager.listar_estoque_critico()
         
         if criticos:
             colunas = ["ID","Nome","Sabor", "Preço (R$)", "Quantia", "Categoria"]
@@ -157,6 +179,92 @@ def menu_vendedor():
             st.table(df)
         else:
             st.success("Estoque saudável! Nenhum item abaixo de 5 unidades.")
+
+    with aba_remover:
+        st.subheader("🗑️ Remover Item")
+    
+        todos_os_itens = manager.pesquisar_estoque("", "") 
+        
+        if todos_os_itens:
+            opcoes = [f"{item.categoria} | ID: {item.id} - {item.nome} ({item.sabor})" for item in todos_os_itens]
+            escolha = st.selectbox("Selecione o item que deseja apagar:", opcoes)
+            
+            idx = opcoes.index(escolha)
+            item_sel = todos_os_itens[idx]
+            id_item = item_sel.id
+            categoria = item_sel.categoria
+
+            st.divider()
+            st.write(f"**Item Selecionado:** {item_sel.nome} - {item_sel.sabor}")
+            st.write(f"**Categoria:** {categoria}")
+            
+            
+            confirmar = st.checkbox(f"Confirmo que desejo apagar permanentemente o item {item_sel.nome}")
+
+            if st.button("Remover do Sistema", type="primary", disabled=not confirmar):
+                sucesso = manager.remover_item(id_item, categoria)
+                
+                if sucesso:
+                    st.success(f"✅ O item '{item_sel.nome}' foi removido com sucesso!")
+                    import time
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error(" ❌ Não foi possível remover o item.")
+        else:
+            st.info("Não existem itens no estoque para remover.")
+
+
+    with aba_editar:
+        st.subheader("✏️ Editar Informações do Produto")
+        
+        todos_itens = manager.pesquisar_estoque("", "") 
+
+        if todos_itens:
+            opcoes = [f"{item.categoria} | {item.nome} ({item.sabor})" for item in todos_itens]
+            escolha = st.selectbox("Selecione o produto para modificar:", opcoes, key="sel_edit")
+            
+            
+            idx = opcoes.index(escolha)
+            item_atual = todos_itens[idx]
+            
+            id_item = item_atual.id
+            nome_atual = item_atual.nome
+            sabor_atual = item_atual.sabor
+            valor_atual = float(item_atual.valor)
+            quantia_atual = int(item_atual.quantia)
+            categoria_atual = item_atual.categoria
+
+            st.divider()
+            
+            with st.form("form_edicao"):
+                st.info(f"Editando: {nome_atual} (ID: {id_item})")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    novo_nome = st.text_input("Nome", value=nome_atual)
+                    novo_valor = st.number_input("Preço (R$)", min_value=0.0, value=valor_atual, step=0.50)
+                with col2:
+                    novo_sabor = st.text_input("Sabor", value=sabor_atual)
+                    nova_quantia = st.number_input("Estoque Atual", min_value=0, value=quantia_atual, step=1)
+                
+               
+                if st.form_submit_button("Salvar Alterações"):
+                    if novo_nome.strip() and novo_sabor.strip():
+                        sucesso = manager.editar_item(
+                            id_item, categoria_atual, novo_nome, novo_sabor, novo_valor, nova_quantia
+                        )
+                        if sucesso:
+                            st.success("✅ Produto atualizado com sucesso!")
+                            import time
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao atualizar banco de dados.")
+                    else:
+                        st.warning("⚠️ Os campos Nome e Sabor não podem ficar vazios.")
+        else:
+            st.info("Nenhum item cadastrado para editar.")
 
 
 

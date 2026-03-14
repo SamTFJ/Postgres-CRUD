@@ -79,21 +79,64 @@ def init_database():
             categoria VARCHAR(10) CHECK (categoria IN ('Salgado', 'Bebida')),
             valor_custo DECIMAL(5,2) NOT NULL
         );
+        """,
+        #=======VIEWS=============
+        #junta salgados e bebidas em uma lista so
+        """
+        CREATE OR REPLACE VIEW vw_estoque_geral AS
+        SELECT id_salgado AS id, nome, sabor, valor, quantia_estoque, 'Salgado' AS categoria 
+        FROM salgados
+        UNION ALL
+        SELECT id_bebida AS id, nome, sabor, valor, quantia_estoque, 'Bebida' AS categoria 
+        FROM bebidas;
+        """,
+
+        #estoque critico (itens abaixo de 5 unidades)
+        """
+        CREATE OR REPLACE VIEW vw_estoque_critico AS
+        SELECT * FROM vw_estoque_geral WHERE quantia_estoque < 5
+        ORDER BY quantia_estoque DESC;
+        """
+
+        #relatorio financeiro
+        """
+        CREATE OR REPLACE VIEW vw_financeiro_detalhado AS
+        SELECT 
+            f.id,
+            f.data_hora,
+            f.origem,
+            f.valor,
+            f.tipo,
+            COALESCE(c.user, 'Consumidor Final') AS nome_cliente,
+            COALESCE(s.user, 'Vendedor/Sistema') AS nome_vendedor
+        FROM financeiro f
+        LEFT JOIN credentials_customer c ON f.cliente_id = c.id
+        LEFT JOIN credentials_salesman s ON f.vendedor_id = s.id;
+        """,
+
+        #itens q mais foram vendidos
+        """
+        CREATE OR REPLACE VIEW vw_ranking_vendas AS
+        SELECT 
+            produto_nome, 
+            SUM(quantidade) AS total_vendido, 
+            SUM(quantidade * preco_unitario) AS faturamento_total
+        FROM itens_venda
+        GROUP BY produto_nome
+        ORDER BY total_vendido DESC;
         """
 
     ]
 
-    print("Criando tabelas...")
+    print("Configurando tabelas e views...")
 
     for command in commands:
         success = db.execute_command(command)
-        if success:
-            print(f"Comando de criação executado!")
-        else:
+        if not success:
             print(f"Erro ao executar comando!")
 
     db.end_connection()
-    print("Processo finalizado")
+    print("Processo finalizado com sucesso")
 
 if __name__ == "__main__":
     init_database()

@@ -11,6 +11,8 @@ from src.backend.login import login
 from src.backend.register import register
 import src.backend.financeiro as fin
 import src.backend.estoque as estoque
+from src.backend.produtos import Salgado, Bebida
+manager = estoque.EstoqueManager()
 
 
 st.set_page_config(
@@ -20,9 +22,18 @@ st.set_page_config(
 
 def menucliente():
     st.title("🛎️ Totem de Pedidos")
+
+    if "reset_vendas" not in st.session_state:
+        st.session_state.reset_vendas = 0
+
+    # verifica mensagem de compra concluida apos o rerun
+    if st.session_state.get("compra_finalizada", False):
+        st.balloons()
+        st.success("✅ Compra Concluida! Volte Sempre!")
+        st.session_state.compra_finalizada = False
     
     #Busca todos os produtos do banco
-    itens_estoque = estoque.pesquisar_estoque("", "") # Pega tudo
+    itens_estoque = manager.pesquisar_estoque("", "") # Pega tudo
     
     if not itens_estoque:
         st.warning("O cardápio está vazio.")
@@ -47,15 +58,15 @@ def menucliente():
 
     #Cria um input para cada item com seu próprio MAX_VALUE
     for item in itens_estoque:
-        id_db = item[0]
-        nome = item[1]
-        sabor = item[2]
-        valor = float(item[3])
-        estoque_atual = int(item[4]) # A quantia em estoque
-        categoria = item[5]
+        id_db = item.id
+        nome = item.nome
+        sabor = item.sabor
+        valor = float(item.valor)
+        estoque_atual = int(item.quantia) 
+        categoria = item.categoria
         
-        # Identificador único para este produto no session_state
-        chave = f"item_{categoria}_{id_db}"
+        # id do produto no session_state + contador do reset
+        chave = f"item_{categoria}_{id_db}_{st.session_state.reset_vendas}"
         
         c1, c2, c3, c4, c5 = st.columns([2, 1.5, 1, 1, 1.2])
         
@@ -76,7 +87,6 @@ def menucliente():
         
         if qtd > 0:
             total_geral += (qtd * valor)
-            # Guarda os detalhes para o processamento final
             st.session_state.pedido_atual[chave] = {
                 "id": id_db, "nome": nome, "cat": categoria, 
                 "qtd": qtd, "subtotal": qtd * valor, "sabor": sabor
@@ -90,33 +100,36 @@ def menucliente():
         st.divider()
         st.subheader(f"Total do Pedido: :green[R$ {total_geral:.2f}]")
         
-        confirmar = st.checkbox("Confirmo que meu pedido está correto")
+        confirmar = st.checkbox("Confirmar Pedido")
         
-        if st.button("🛒 Finalizar Compra de Todos os Itens", type="primary", disabled=not confirmar):
-            sucesso = 0
-            for info in st.session_state.pedido_atual.values():
-                foi_baixado = estoque.baixar_estoque(info['id'], info['cat'], info['qtd'])
+        if st.button("🛒 Finalizar Compra", type="primary", disabled=not confirmar):
+            sucesso_algum_item = False
+            
+            for info in list(st.session_state.pedido_atual.values()):
+                foi_baixado = manager.baixar_estoque(info['id'], info['cat'], info['qtd'])
                 
-                if foi_baixado:
+                if foi_baixado > 0:
                     fin.registrar_movimentacao(
                         origem=f"Venda: {info['qtd']}x {info['nome']} ({info['sabor']})",
                         valor=info['subtotal'],
                         tipo="ENTRADA",
                         cliente_id=st.session_state.get("user_id")
                     )
-                    sucesso += 1
+                    sucesso_algum_item = True
             
-            if sucesso > 0:
-                st.success(f"✅ Sucesso! {sucesso} tipos de produtos foram processados.")
-                st.balloons()
-              
-                st.session_state.pedido_atual = {} #limpa pedido
-
-                for key in list(st.session_state.keys()):
-                    if key.startswith("item_"):
-                        del st.session_state[key]
+            if sucesso_algum_item:
+                st.session_state.compra_finalizada = True
                 
+                # limpa pedidos
+                st.session_state.pedido_atual = {}
+
+                # muda a chave dos widgets, reseta pra 0 os inputs a cada rerun
+                st.session_state.reset_vendas += 1
+
                 st.rerun()
+            else:
+                st.error("Erro ao processar o pedido. Verifique o estoque.")
+
 
 
 if not st.session_state.get("valid1", False):

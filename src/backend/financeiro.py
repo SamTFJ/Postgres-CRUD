@@ -29,20 +29,8 @@ def registrar_movimentacao(origem, valor, tipo, cliente_id=None, vendedor_id=Non
 
 def relatorio_financeiro_detalhado():
     db = dbconnection()
-    #junta 4 tabelas em um select, o Coalesce faz com que se ocorra uma venda sem o cliente registrdo, vai retornar consumidor final ao inves de null, o mesmo pra vendedor
-    comando = """
-        SELECT 
-            f.data_hora,
-            COALESCE(c.user, 'Consumidor Final') as cliente,
-            COALESCE(s.user, 'Vendedor') as vendedor,
-            f.origem,
-            f.valor,
-            f.tipo
-        FROM financeiro f
-        LEFT JOIN credentials_customer c ON f.cliente_id = c.id
-        LEFT JOIN credentials_salesman s ON f.vendedor_id = s.id
-        ORDER BY f.data_hora DESC;
-    """
+    #view mais detalhado para ver relatorio
+    comando = "SELECT * FROM vw_financeiro_detalhado ORDER BY data_hora DESC;"
     dados = db.fetch_all(comando)
     db.end_connection()
     return dados
