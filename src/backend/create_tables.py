@@ -8,19 +8,18 @@ def init_database():
         CREATE TABLE IF NOT EXISTS salgados(
             id_salgado SERIAL PRIMARY KEY,
             nome VARCHAR(30) NOT NULL,
+            sabor VARCHAR(20) NOT NULL default 'Padrão',
             valor DECIMAL(4,2) NOT NULL,
-            quantia_estoque SMALLINT NOT NULL default 0,
-            sabor VARCHAR(20) NOT NULL default 'Padrão'
+            quantia_estoque SMALLINT NOT NULL default 0
         );
         """,
         """
         CREATE TABLE IF NOT EXISTS bebidas(
             id_bebida SERIAL PRIMARY KEY,
             nome VARCHAR(30) NOT NULL,
-            valor DECIMAL(5,2) NOT NULL,
-            quantia_estoque SMALLINT NOT NULL default 0,
             sabor VARCHAR(20) NOT NULL default 'Padrão',
-            volume_ml SMALLINT default 100
+            valor DECIMAL(5,2) NOT NULL,
+            quantia_estoque SMALLINT NOT NULL default 0
         );
         """,
         #enum pra tabela financeiro
@@ -39,7 +38,9 @@ def init_database():
             origem VARCHAR(100) NOT NULL,
             valor DECIMAL(10, 2) NOT NULL CHECK (valor > 0),
             tipo tipo_movimentacao NOT NULL,
-            data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            vendedor_id INTEGER REFERENCES credentials_salesman(id) ON DELETE SET NULL,
+            cliente_id INTEGER REFERENCES credentials_customer(id) ON DELETE SET NULL
         );
         """,
         #saldo inicial
@@ -47,6 +48,37 @@ def init_database():
         INSERT INTO financeiro (origem, valor, tipo)
         SELECT 'Aporte Inicial de Capital', 10000.00, 'ENTRADA'
         WHERE NOT EXISTS (SELECT 1 FROM financeiro);
+        """,
+
+        # tabela de Vendas 
+        """
+        CREATE TABLE IF NOT EXISTS vendas (
+            id_venda SERIAL PRIMARY KEY,
+            data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            vendedor_id INTEGER REFERENCES credentials_salesman(id) ON DELETE SET NULL,
+            cliente_id INTEGER REFERENCES credentials_customer(id) ON DELETE SET NULL,
+            valor_total DECIMAL(10,2) NOT NULL
+        );
+        """,
+        # tabela de Itens da Venda 
+        """
+        CREATE TABLE IF NOT EXISTS itens_venda (
+            id_item SERIAL PRIMARY KEY,
+            venda_id INTEGER REFERENCES vendas(id_venda) ON DELETE CASCADE,
+            produto_nome VARCHAR(50) NOT NULL,
+            quantidade INTEGER NOT NULL,
+            preco_unitario DECIMAL(10,2) NOT NULL
+        );
+        """
+        #fabrica para reabastecer estoque
+        """
+        CREATE TABLE IF NOT EXISTS fabrica (
+            id_item_fabrica SERIAL PRIMARY KEY,
+            nome VARCHAR(30) NOT NULL,
+            sabor VARCHAR(20) NOT NULL,
+            categoria VARCHAR(10) CHECK (categoria IN ('Salgado', 'Bebida')),
+            valor_custo DECIMAL(5,2) NOT NULL
+        );
         """
 
     ]

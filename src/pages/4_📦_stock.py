@@ -36,13 +36,14 @@ def menu_vendedor():
             st.markdown ("🥟 Cadastro de Salgados")
             with st.form("form_salgado"):
                 nome = st.text_input("Nome do Salgado")
+                sabor = st.text_input("Sabor")
                 valor = st.number_input("Valor do Salgado (R$)", min_value = 0.0, step = 0.50)
                 quantia = st.number_input("Quantia Inicial para o Estoque", min_value = 0, step = 1)
-                sabor = st.text_input("Sabor")
+                
 
                 if st.form_submit_button("Adicionar Salgado"):
                     if nome.strip() and sabor.strip() and valor > 0:
-                        if estoque.adicionar_salgado(nome,valor,quantia,sabor):
+                        if estoque.adicionar_salgado(nome,sabor,valor,quantia):
                             st.success(f"{nome} adicionado com sucesso!")
                         else:
                             st.error("❌ Erro ao adicionar salgado!")
@@ -53,14 +54,13 @@ def menu_vendedor():
             st.markdown("🥤 Cadastro de Bebidas")
             with st.form("form bebida"):
                 nomeb = st.text_input("Nome da bebida")
+                saborb = st.text_input("Sabor")
                 valorb = st.number_input("Preço (R$)", min_value=0.0, step=0.50)
                 quantiab = st.number_input("Quantia Inicial para o Estoque", min_value=0, step=1)
-                saborb = st.text_input("Sabor")
-                volume = st.number_input("Volume (ml)", min_value = 100, step=50)
 
                 if st.form_submit_button("Adicionar Bebida"):
                     if nomeb.strip() and saborb.strip() and valorb > 0:
-                        if estoque.adicionar_bebida(nomeb,valorb,quantiab,saborb,volume):
+                        if estoque.adicionar_bebida(nomeb,saborb,valorb,quantiab):
                             st.success(f"{nomeb} foi adicionada com sucesso")
                         else:
                             st.error("❌ Falha ao acidionar bebida!")
@@ -68,7 +68,44 @@ def menu_vendedor():
                         st.warning("⚠️ Preencha os campos corretamente!")
 
     with aba_atualizar:
-        st.write("Reabastecer bebidas ou salgados...")
+        st.subheader("🏭 Pedido à Fábrica")
+        
+        itens_fabrica = estoque.listar_fabrica()
+        
+        if itens_fabrica:
+            opcoes = [f"{item[0]} ({item[1]})" for item in itens_fabrica]
+            escolha = st.selectbox("Selecione o produto da Fábrica", opcoes)
+            
+            idx = opcoes.index(escolha)
+            item_sel = itens_fabrica[idx] # (nome, sabor, categoria, valor_custo)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                qtd_compra = st.number_input("Quantidade", min_value=1, step=1, key="qtd_f")
+            with col2:
+                preco_custo = float(item_sel[3])
+                st.text_input("Preço de Custo Unitário", value=f"R$ {preco_custo:.2f}", disabled=True)
+            
+            # calculo do total q
+            total_financeiro = qtd_compra * preco_custo
+            st.info(f"💰 **Total a ser descontado do caixa: R$ {total_financeiro:.2f}**")
+
+            # botão de confirmação com um checkbox de segurança 
+            confirmar = st.checkbox("Confirmo os valores acima")
+            
+            if st.button("Finalizar Compra", disabled=not confirmar):
+                sucesso = estoque.comprar_da_fabrica(
+                    item_sel[0], item_sel[1], item_sel[2], qtd_compra, preco_custo
+                )
+                
+                if sucesso:
+                    st.toast(f"✅ Compra de {item_sel[0]} realizada!", icon = '💰')
+                    st.success(f"✅ Sucesso! R$ {total_financeiro:.2f} descontados do caixa.")
+                else:
+                    st.error("❌ Erro: Este item precisa ser cadastrado antes.")
+        else:
+            st.warning("O catálogo da fábrica está vazio.")
+
 
     with aba_exibir:
         st.write("🔍 Consultar Estoque")
@@ -100,7 +137,7 @@ def menu_vendedor():
                 #função de UNION para mostrar tudo
                 dados = estoque.pesquisar_estoque("", "")
         if dados:
-            colunas = ["Nome", "Preço (R$)", "Quantia", "Sabor", "Volume (ml)", "Categoria"] #dataframe
+            colunas = ["ID", "Nome", "Sabor","Preço (R$)", "Quantia", "Categoria"] #dataframe
             df = pd.DataFrame(dados, columns=colunas) #transforma df de lista para tabela
             st.write(f"Exibindo {len(df)} item(ns):")
             st.dataframe(df, width="stretch")
@@ -114,7 +151,7 @@ def menu_vendedor():
         criticos = estoque.listar_estoque_critico()
         
         if criticos:
-            colunas = ["Nome", "Preço (R$)", "Quantia", "Sabor", "Volume (ml)", "Categoria"]
+            colunas = ["ID","Nome","Sabor", "Preço (R$)", "Quantia", "Categoria"]
             df = pd.DataFrame(criticos, columns=colunas) #transforma df de lista para tabela
             st.warning(f"Existem {len(df)} produtos acabando!")
             st.table(df)

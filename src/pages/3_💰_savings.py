@@ -19,11 +19,13 @@ def menu_economia():
     st.title("💰 Gerenciamento Econômico")
 
     saldo_atual = fin.saldo_atual()
+    valor_format = f"{saldo_atual:,.2f}"
+    valor_br = valor_format.replace(",", "X").replace(".", ",").replace("X", ".")
 
     st.metric(
-        label="Dinheiro Total em Caixa", 
-        value=f"R$ {saldo_atual:,.2f}",
-        delta=f"{saldo_atual - 10000:.2f} (Desde o início)"
+    label="Dinheiro Total em Caixa", 
+    value=f"R$ {valor_br}",
+    delta=f"{(saldo_atual - 10000):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     )
 
     st.divider()
