@@ -27,7 +27,7 @@ class EstoqueManager:
     def adicionar_bebida(self, nome, sabor, valor, quantia):
         return self._adicionar_item("bebidas", nome, sabor, valor, quantia)
 
-    ##================ BUSCA DE ITENS ========================
+    ##================ BUSCA DE ITENS / RELATORIOS ========================
 
     def listar_salgados(self):
         db = dbconnection()
@@ -75,6 +75,30 @@ class EstoqueManager:
                 lista_objetos.append(Bebida(d[0], d[1], d[2], float(d[3]), d[4]))
 
         return lista_objetos
+    
+    def quantia_total(self):
+        db = dbconnection()
+
+        comando_salgado = "SELECT SUM(quantia_estoque) FROM salgados"
+        dado_S = db.fetch_one(comando_salgado)
+        total_salgado = dado_S[0] if dado_S and dado_S[0] else 0
+        
+        comando_bebida = "SELECT SUM(quantia_estoque) FROM bebidas"
+        dado_B = db.fetch_one(comando_bebida)
+        total_bebida = dado_B[0] if dado_B and dado_B[0] else 0
+
+        tipos_salgado = db.fetch_one("SELECT COUNT(*) FROM salgados")[0] or 0
+        tipos_bebida = db.fetch_one("SELECT COUNT(*) FROM bebidas")[0] or 0
+
+        db.end_connection()
+
+        return{
+            "total_salgado": total_salgado,
+            "total_bebida": total_bebida,
+            "tipos_salgado" : tipos_salgado,
+            "tipos_bebida": tipos_bebida,
+            "tipos_total_produtos" : tipos_bebida + tipos_salgado
+        }
     
     ##================ REMOVER ITENS ========================
 

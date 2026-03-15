@@ -25,7 +25,32 @@ def menu_vendedor():
 
     #abas principais
 
-    aba_cadastro,aba_remover,aba_atualizar, aba_exibir ,aba_editar, aba_alerta= st.tabs(["📝 Cadastrar Produto"," ❌ Remover Produto" ,"🚛 Reabastecer", "🔍 Pesquisar/Vizualizar","✏️ Editar Produto", " ⚠️ Estoque Baixo"])
+    aba_relatorio,aba_cadastro,aba_remover,aba_atualizar, aba_exibir ,aba_editar, aba_alerta= st.tabs(["📊 Relatório","📝 Cadastrar Produto"," ❌ Remover Produto" ,"🚛 Reabastecer", "🔍 Pesquisar/Vizualizar","✏️ Editar Produto", " ⚠️ Estoque Baixo"])
+
+    with aba_relatorio:
+        st.subheader("📊 Resumo do Estoque")
+        
+        resumo = manager.quantia_total()
+        
+        c1, c2, c3 = st.columns(3)
+        
+        with c1:
+            st.metric("Total de Salgados", f"{resumo['total_salgado']} un")
+        with c2:
+            st.metric("Total de Bebidas", f"{resumo['total_bebida']} un")
+        with c3:
+            st.metric("Variedade de Produtos", f"{resumo['tipos_total_produtos']} tipos")
+            
+        st.divider()
+        
+        st.write("### Análise de Composição")
+        dados_grafico = pd.DataFrame({
+            "Categoria": ["Salgados", "Bebidas"],
+            "Qtd Variedade": [resumo['tipos_salgado'], resumo['tipos_bebida']]
+        })
+        st.bar_chart(dados_grafico, x="Categoria", y="Qtd Variedade", color="#131966")
+        
+
 
     with aba_cadastro:
     #pills dentro das abas
@@ -33,7 +58,7 @@ def menu_vendedor():
             "O que deseja cadastrar?", ["Salgado", "Bebida"], selection_mode="single"
         )
 
-        st.divider() #linha p/ separar selecao do formulario
+        st.divider() 
 
 
         if tipo_cadastro == "Salgado":
@@ -150,7 +175,6 @@ def menu_vendedor():
             elif filtro_categoria == "Bebidas":
                 dados = manager.listar_bebidas()
             else:
-                #função de UNION para mostrar tudo
                 dados = manager.pesquisar_estoque("", "")
         if dados:
             colunas = ["ID", "Nome", "Sabor","Preço (R$)", "Quantia", "Categoria"] #dataframe

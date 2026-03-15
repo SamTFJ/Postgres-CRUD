@@ -22,7 +22,7 @@ st.set_page_config(
 )
 
 def menucliente():
-    st.title("🛎️ Totem de Pedidos")
+    st.title("🛎️ Menu de Compras")
 
     if "reset_vendas" not in st.session_state:
         st.session_state.reset_vendas = 0
@@ -45,6 +45,32 @@ def menucliente():
     if "pedido_atual" not in st.session_state:
         st.session_state.pedido_atual = {}
 
+    st.write("### 🔍 Buscar Produtos ")
+    col_f1, col_f2, col_f3 = st.columns([1,1.2,1.3])
+
+    with col_f1:
+        cat_filtro = st.pills("Categoria", ["Todos", "Salgado", "Bebida"], default="Todos")
+    
+    with col_f2:
+        busca_nome = st.text_input("Pesquisar por nome", placeholder="Ex: Coxinha")
+    
+    with col_f3:
+        busca_sabor = st.text_input("Sabor", placeholder="Ex: Frango")
+
+    if cat_filtro is None:
+        cat_filtro = "Todos"
+
+    itens_exibidos = [
+        i for i in itens_estoque 
+        if (cat_filtro == "Todos" or i.categoria == cat_filtro) and
+           (busca_nome.lower() in i.nome.lower()) and
+           (busca_sabor.lower() in i.sabor.lower())
+    ]
+
+
+    st.divider()
+
+
     st.write("### 🍕 Escolha seus produtos")
     
     #cabeçalho da lista
@@ -58,7 +84,7 @@ def menucliente():
     total_geral = 0.0
 
     #Cria um input para cada item com seu próprio MAX_VALUE
-    for item in itens_estoque:
+    for item in itens_exibidos:
         id_db = item.id
         nome = item.nome
         sabor = item.sabor
@@ -68,6 +94,10 @@ def menucliente():
         
         # id do produto no session_state + contador do reset
         chave = f"item_{categoria}_{id_db}_{st.session_state.reset_vendas}"
+
+        valor_anterior = 0
+        if chave in st.session_state.pedido_atual:
+            valor_anterior = st.session_state.pedido_atual[chave]['qtd']
         
         c1, c2, c3, c4, c5 = st.columns([2, 1.5, 1, 1, 1.2])
         
@@ -80,7 +110,8 @@ def menucliente():
         qtd = c5.number_input(
             "Pedir", 
             min_value=0, 
-            max_value=estoque_atual, # Bloqueia se exceder o estoque
+            max_value=estoque_atual, # Bloqueia se exceder o valor do estoque atual
+            value = valor_anterior, #manter o q ja foi selecionado
             step=1, 
             key=chave,
             label_visibility="collapsed"
@@ -96,6 +127,20 @@ def menucliente():
             # Remove do pedido se a quantidade voltar a zero
             st.session_state.pedido_atual.pop(chave, None)
 
+
+    if st.session_state.pedido_atual:
+        st.divider()
+        st.subheader("🛒 Resumo do seu Carrinho")
+        
+        total_geral = 0.0
+        for chave, info in st.session_state.pedido_atual.items():
+            col_res1, col_res2, col_res3 = st.columns([3, 1, 1])
+            col_res1.write(f"**{info['nome']}** ({info['sabor']})")
+            col_res2.write(f"{info['qtd']} un")
+            col_res3.write(f"R$ {info['subtotal']:.2f}")
+            total_geral += info['subtotal']
+
+
     # finalização do Pedido
     if total_geral > 0:
         st.divider()
@@ -103,7 +148,7 @@ def menucliente():
         
         confirmar = st.checkbox("Confirmar Pedido")
         
-        if st.button("🛒 Finalizar Compra", type="primary", disabled=not confirmar):
+        if st.button("Finalizar Compra", type="primary", disabled=not confirmar):
             itens_para_venda = []
             sucesso_estoque = True
             
