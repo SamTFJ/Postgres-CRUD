@@ -10,9 +10,10 @@ if root_dir not in sys.path:
 from src.backend.login import login
 from src.backend.register import register
 import src.backend.estoque as estoque
-import src.backend.financeiro as fin
+import src.backend.financeiro as finance
 from src.backend.produtos import Salgado, Bebida
 manager = estoque.EstoqueManager()
+fin = finance.Financeiro()
 
 st.set_page_config(
     page_title="Estoque",

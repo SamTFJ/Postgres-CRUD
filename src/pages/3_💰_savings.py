@@ -1,6 +1,7 @@
 import streamlit as st
 from pathlib import Path
 import sys
+import pandas as pd
 
 
 root_dir = str(Path(__file__).parent.parent.parent)
@@ -8,7 +9,8 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
 
 from src.backend.login import login
-import src.backend.financeiro as fin
+import src.backend.financeiro as finance
+fin = finance.Financeiro()
 
 st.set_page_config(
     page_title="Economias",
@@ -32,6 +34,25 @@ def menu_economia():
 
     st.subheader("📋 Últimas Movimentações")
 
+    historico = fin.relatorio_financeiro_detalhado()
+    
+    if historico:
+        df_financeiro = pd.DataFrame(
+            historico,
+            columns=["Data", "Descrição", "Valor (R$)", "Operação"]
+        )
+        
+        def colorir_tipo(val):
+            color = '#155724' if val == 'ENTRADA' else '#721c24'
+            return f'color: {color}; font-weight: bold'
+
+        st.dataframe(
+            df_financeiro.style.map(colorir_tipo, subset=['Operação']),
+            width="stretch",
+            hide_index=True
+        )
+    else:
+        st.info("Nenhuma movimentação registrada até o momento.")
 
 if not st.session_state.get("valid2", False):
     tab_login, = st.tabs(["Login"])

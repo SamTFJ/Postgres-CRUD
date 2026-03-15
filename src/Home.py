@@ -1,4 +1,15 @@
 import streamlit as st
+import pandas as pd
+from pathlib import Path
+import sys
+
+root_dir = str(Path(__file__).parent.parent)
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
+
+import src.backend.estoque as estoque
+manager = estoque.EstoqueManager()
+
 
 st.set_page_config(
     page_title="Lanchonete",
@@ -9,6 +20,41 @@ st.set_page_config(
 def menuprincipal():
     st.title("Lanchonete SABOR 🥘 ")
     st.info("Seja bem-vindo! Use o menu lateral para navegar.")
+
+    st.divider()
+    st.subheader("🍕 Nosso Cardápio")
+    filtro = st.pills(
+        "Filtrar por categoria:",
+        options=["Todos", "Salgado", "Bebida"],
+        default="Todos"
+    )
+
+    if filtro is None:
+        filtro = "Todos"
+
+        
+    itens = manager.pesquisar_estoque("", "") 
+    
+    if itens:
+        dados_cardapio = []
+        for item in itens:
+            if filtro == "Todos" or item.categoria == filtro:
+                dados_cardapio.append({
+                    "Produto": item.nome,
+                    "Sabor": item.sabor,
+                    "Preço": f"R$ {item.valor:.2f}",
+                    "Categoria": item.categoria
+                })
+        
+        if dados_cardapio:
+            df_cardapio = pd.DataFrame(dados_cardapio)
+            st.dataframe(df_cardapio, width="stretch", hide_index=True)
+        else:
+            st.info(f"Não há {filtro.lower()}s disponíveis no momento.")
+            
+    else:
+        st.warning("O cardápio está sendo preparado. Volte logo!")
+
 
 #obj de pagina q aponta para os arquivos existentes
 home_page = st.Page(menuprincipal, title="Menu Lanchonete", icon ="🥘", default = True)

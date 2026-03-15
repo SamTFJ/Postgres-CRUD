@@ -1,6 +1,7 @@
 from .dbconnection import dbconnection
-import src.backend.financeiro as fin
+import src.backend.financeiro as finance
 from src.backend.produtos import Salgado, Bebida
+fin = finance.Financeiro()
 
 class EstoqueManager:
     def __init__(self):

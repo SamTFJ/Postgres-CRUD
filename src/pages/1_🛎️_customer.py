@@ -9,10 +9,11 @@ if root_dir not in sys.path:
 
 from src.backend.login import login
 from src.backend.register import register
-import src.backend.financeiro as fin
+import src.backend.financeiro as finance
 import src.backend.estoque as estoque
 from src.backend.produtos import Salgado, Bebida
 manager = estoque.EstoqueManager()
+fin = finance.Financeiro()
 
 
 st.set_page_config(
@@ -103,33 +104,42 @@ def menucliente():
         confirmar = st.checkbox("Confirmar Pedido")
         
         if st.button("🛒 Finalizar Compra", type="primary", disabled=not confirmar):
-            sucesso_algum_item = False
+            itens_para_venda = []
+            sucesso_estoque = True
+            
             
             for info in list(st.session_state.pedido_atual.values()):
-                foi_baixado = manager.baixar_estoque(info['id'], info['cat'], info['qtd'])
+                qtd_baixada = manager.baixar_estoque(info['id'], info['cat'], info['qtd'])
                 
-                if foi_baixado > 0:
-                    fin.registrar_movimentacao(
-                        origem=f"Venda: {info['qtd']}x {info['nome']} ({info['sabor']})",
-                        valor=info['subtotal'],
-                        tipo="ENTRADA",
-                        cliente_id=st.session_state.get("user_id")
-                    )
-                    sucesso_algum_item = True
+                if qtd_baixada > 0:
+                    itens_para_venda.append({
+                        'nome': info['nome'],
+                        'sabor': info['sabor'],
+                        'qtd': info['qtd'],
+                        'preco_unitario': info['subtotal'] / info['qtd']
+                    })
+                else:
+                    sucesso_estoque = False
+                    st.error(f"Erro de estoque para: {info['nome']}")
+
             
-            if sucesso_algum_item:
-                st.session_state.compra_finalizada = True
+            if itens_para_venda:
                 
-                # limpa pedidos
-                st.session_state.pedido_atual = {}
-
-                # muda a chave dos widgets, reseta pra 0 os inputs a cada rerun
-                st.session_state.reset_vendas += 1
-
-                st.rerun()
-            else:
-                st.error("Erro ao processar o pedido. Verifique o estoque.")
-
+                total_pedido = sum(item['qtd'] * item['preco_unitario'] for item in itens_para_venda)
+                
+                sucesso_venda = fin.registrar_venda_detalhada(
+                    valor_total=total_pedido,
+                    itens_do_pedido=itens_para_venda,
+                    cliente_id=st.session_state.get("user_id")
+                )
+                
+                if sucesso_venda:
+                    st.session_state.compra_finalizada = True
+                    st.session_state.pedido_atual = {}
+                    st.session_state.reset_vendas += 1
+                    st.rerun()
+                else:
+                    st.error("Erro ao registrar os dados financeiros da venda.")
 
 
 if not st.session_state.get("valid1", False):

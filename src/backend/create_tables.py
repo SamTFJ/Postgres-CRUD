@@ -66,6 +66,7 @@ def init_database():
             id_item SERIAL PRIMARY KEY,
             venda_id INTEGER REFERENCES vendas(id_venda) ON DELETE CASCADE,
             produto_nome VARCHAR(50) NOT NULL,
+            produto_sabor VARCHAR(50) NOT NULL,
             quantidade INTEGER NOT NULL,
             preco_unitario DECIMAL(10,2) NOT NULL
         );
@@ -122,7 +123,7 @@ def init_database():
             SUM(quantidade) AS total_vendido, 
             SUM(quantidade * preco_unitario) AS faturamento_total
         FROM itens_venda
-        GROUP BY produto_nome
+        GROUP BY produto_nome, produto_sabor
         ORDER BY total_vendido DESC;
         """
 
