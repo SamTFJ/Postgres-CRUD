@@ -1,10 +1,7 @@
 import streamlit as st
 from pathlib import Path
 import sys
-<<<<<<< HEAD
-=======
 import pandas as pd
->>>>>>> feature/interfaceup
 
 root_dir = str(Path(__file__).parent.parent.parent)
 if root_dir not in sys.path:
@@ -12,25 +9,18 @@ if root_dir not in sys.path:
 
 from src.backend.login import login
 from src.backend.register import register
-<<<<<<< HEAD
-=======
 import src.backend.financeiro as finance
 import src.backend.estoque as estoque
 from src.backend.produtos import Salgado, Bebida
 manager = estoque.EstoqueManager()
 fin = finance.Financeiro()
 
->>>>>>> feature/interfaceup
 
 st.set_page_config(
     page_title="Customer Menu",
     page_icon="🛎️"
 )
 
-<<<<<<< HEAD
-def helloworld():
-    st.write("hello world!")
-=======
 def menucliente():
     st.title("🛎️ Menu de Compras")
 
@@ -196,23 +186,14 @@ def menucliente():
                 else:
                     st.error("Erro ao registrar os dados financeiros da venda.")
 
->>>>>>> feature/interfaceup
 
 if not st.session_state.get("valid1", False):
     tab_login, tab_register = st.tabs(["Login", "Register"])
 
     with tab_login:
-<<<<<<< HEAD
-        login(type=1, function=helloworld, table="credentials_customer")
-=======
         login(type=1, function=menucliente, table="credentials_customer")
->>>>>>> feature/interfaceup
 
     with tab_register:
         register(table="credentials_customer")
 else:
-<<<<<<< HEAD
-    login(type=1, function=helloworld, table="credentials_customer")
-=======
     login(type=1, function=menucliente, table="credentials_customer")
->>>>>>> feature/interfaceup

@@ -1,16 +1,4 @@
 import streamlit as st
-<<<<<<< HEAD
-
-st.set_page_config(
-    page_title="CRUD",
-    page_icon="🌐",
-    layout="wide"
-)
-
-st.write("# CRUD Home")
-
-st.sidebar.success("Select one of the pages above.")
-=======
 import pandas as pd
 from pathlib import Path
 import sys
@@ -93,4 +81,3 @@ else:
 #executa
 pg.run()
 
->>>>>>> feature/interfaceup

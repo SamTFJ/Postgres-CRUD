@@ -1,10 +1,7 @@
 import streamlit as st
 from pathlib import Path
 import sys
-<<<<<<< HEAD
-=======
 import pandas as pd
->>>>>>> feature/interfaceup
 
 root_dir = str(Path(__file__).parent.parent.parent)
 if root_dir not in sys.path:
@@ -12,16 +9,6 @@ if root_dir not in sys.path:
 
 from src.backend.login import login
 from src.backend.register import register
-<<<<<<< HEAD
-
-st.set_page_config(
-    page_title="Salesman Menu",
-    page_icon="📊"
-)
-
-def helloworld():
-    st.write("hello world!")
-=======
 import src.backend.financeiro as finance
 fin = finance.Financeiro()
 
@@ -57,23 +44,14 @@ def menu_vendedor():
     else:
         st.info("Ainda não há dados de vendas suficientes para gerar o ranking.")
 
->>>>>>> feature/interfaceup
 
 if not st.session_state.get("valid2", False):
     tab_login, tab_register = st.tabs(["Login", "Register"])
 
     with tab_login:
-<<<<<<< HEAD
-        login(type=2, function=helloworld, table="credentials_salesman")
-=======
         login(type=2, function=menu_vendedor, table="credentials_salesman")
->>>>>>> feature/interfaceup
 
     with tab_register:
         register(table="credentials_salesman")
 else:
-<<<<<<< HEAD
-    login(type=2, function=helloworld, table="credentials_salesman")
-=======
     login(type=2, function=menu_vendedor, table="credentials_salesman")
->>>>>>> feature/interfaceup
