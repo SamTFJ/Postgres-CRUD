@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 # Para conectar com o Supabase
 from supabase import create_client, Client
+import streamlit as st
 
 # Carrega as variáveis do arquivo .env
 load_dotenv(".env",override = True)
@@ -30,14 +31,23 @@ class dbconnection:
             # )
 
             # Versão com o Supabase
-            url = os.getenv("supabase_url")
-            key = os.getenv("supabase_key")
+            # url = os.getenv("supabase_url")
+            # key = os.getenv("supabase_key")
+
+            # Versão compatível com o streamlit
+            url = st.secrets["supabase_url"]
+            key = st.secrets["supabase_key"]
             
             self.supabase = create_client(url, key)
 
+            # self.conn = psycopg2.connect(
+            #     os.getenv("supabase_db_url")
+            # )
+
             self.conn = psycopg2.connect(
-                os.getenv("supabase_db_url")
+                st.secrets["supabase_db_url"]
             )
+
             self.cur = self.conn.cursor()
 
         except (Exception, psycopg2.Error) as error:
