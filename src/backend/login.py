@@ -6,14 +6,17 @@ from .dbconnection import dbconnection
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
-def check_credentials(db: dbconnection, username: str, password: str, table: str) -> bool:
+def check_credentials(db: dbconnection, username: str, password: str, table: str):
     result = db.fetch_one(
-        f'SELECT password FROM {table} WHERE "user" = %s',
+        f'SELECT id, password FROM {table} WHERE "user" = %s',
         (username,)
     )
     if result is None:
-        return False
-    return result[0] == hash_password(password)
+        return None
+    user_id, stored_password = result
+    if stored_password == hash_password(password):
+        return user_id
+    return None
 
 def login(type, function, table):
     if 'valid1' not in st.session_state:
@@ -24,8 +27,10 @@ def login(type, function, table):
 
     titles = {1: "Client Log-in", 2: "Salesman Log-in"}
     state_keys = {1: "valid1", 2: "valid2"}
+    id_keys = {1: "user_id", 2: "salesman_id"}
 
     state_key = state_keys[type]
+    id_key = id_keys[type]
 
     if not st.session_state[state_key]:
         st.title(titles[type])
@@ -35,8 +40,10 @@ def login(type, function, table):
 
         if st.button("Enter", key=f"login_btn_{type}"):
             db = dbconnection()
-            if check_credentials(db, username, password, table):
+            user_id = check_credentials(db, username, password, table)
+            if user_id is not None:
                 st.session_state[state_key] = True
+                st.session_state[id_key] = user_id
                 st.success("Logging in...!")
                 time.sleep(1)
                 st.rerun()

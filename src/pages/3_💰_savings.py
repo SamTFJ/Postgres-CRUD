@@ -39,7 +39,7 @@ def menu_economia():
     if historico:
         df_financeiro = pd.DataFrame(
             historico,
-            columns=["Data", "Descrição", "Valor (R$)", "Operação"]
+            columns=["Data", "Descrição", "Valor (R$)", "Operação", "Vendedor", "Cliente"]
         )
         
         def colorir_tipo(val):
