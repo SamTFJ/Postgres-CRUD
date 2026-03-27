@@ -34,18 +34,18 @@ class Financeiro:
     def relatorio_financeiro_detalhado(self):
         db = dbconnection()
         #view mais detalhado para ver relatorio
-        comando = "SELECT data_hora, origem, valor,tipo FROM vw_financeiro_detalhado ORDER BY data_hora DESC;"
+        comando = "SELECT data_hora, origem, valor, tipo, nome_vendedor, nome_cliente FROM vw_financeiro_detalhado ORDER BY data_hora DESC;"
         dados = db.fetch_all(comando)
         db.end_connection()
         return dados
     
     
-    def registrar_venda_detalhada(self, valor_total, itens_do_pedido, cliente_id=None):
+    def registrar_venda_detalhada(self, valor_total, itens_do_pedido, cliente_id=None, vendedor_id=None):
         db = dbconnection()
         try:
             
-            query_venda = "INSERT INTO vendas (valor_total, cliente_id) VALUES (%s, %s) RETURNING id_venda;"
-            db.cur.execute(query_venda, (valor_total, cliente_id))
+            query_venda = "INSERT INTO vendas (valor_total, cliente_id, vendedor_id) VALUES (%s, %s, %s) RETURNING id_venda;"
+            db.cur.execute(query_venda, (valor_total, cliente_id, vendedor_id))
             id_venda = db.cur.fetchone()[0]
 
             query_item = """
@@ -55,7 +55,7 @@ class Financeiro:
             for item in itens_do_pedido:
                 db.cur.execute(query_item, (id_venda, item['nome'],item['sabor'],item['qtd'], item['preco_unitario']))
             
-            self.registrar_movimentacao(f"Venda #{id_venda}", valor_total, "ENTRADA", cliente_id)
+            self.registrar_movimentacao(f"Venda #{id_venda}", valor_total, "ENTRADA", cliente_id, vendedor_id)
 
             db.conn.commit()
             return True

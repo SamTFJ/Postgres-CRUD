@@ -175,7 +175,8 @@ def menucliente():
                 sucesso_venda = fin.registrar_venda_detalhada(
                     valor_total=total_pedido,
                     itens_do_pedido=itens_para_venda,
-                    cliente_id=st.session_state.get("user_id")
+                    cliente_id=st.session_state.get("user_id"),
+                    vendedor_id=st.session_state.get("salesman_id")
                 )
                 
                 if sucesso_venda:
