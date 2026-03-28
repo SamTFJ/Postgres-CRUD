@@ -1,24 +1,27 @@
-include .env
-export $(shell sed 's/=.*//' .env)
+ifneq ("$(wildcard .env)","")
+    include .env
+    export $(shell sed 's/=.*//' .env)
+endif
 
-VENV_ACTIVATE = source $(shell pwd)/.venv/bin/activate
-SERVER = streamlit run src/Home.py
-TEST = .venv/bin/python3 -m src.backend.dbconnection
+PYTHON = .venv/bin/python3
+STREAMLIT = .venv/bin/streamlit
+export PYTHONPATH := $(shell pwd)
 
 install:
 	python3 -m venv .venv
-	bash -c '$(VENV_ACTIVATE) && .venv/bin/python3 -m pip install -r requirements.txt'
+	$(PYTHON) -m pip install -r requirements.txt
 
 run:
-# 	Para acrescentar um log
-# 	bash -c '$(VENV_ACTIVATE) && $(SERVER)' > server.log 2>&1 &
-	bash -c '$(VENV_ACTIVATE) && $(SERVER)'
-
-clean:
-	rm -f server.log
-
-test:
-	bash -c '$(TEST)'
+	$(STREAMLIT) run src/Home.py
 
 init-db:
-	bash -c '$(VENV_ACTIVATE) && .venv/bin/python3 -m src.backend.create_tables'
+	@echo "Inicializando o banco de dados..."
+	$(PYTHON) -m src.backend.create_tables
+
+test:
+	$(PYTHON) -m src.backend.dbconnection
+
+clean:
+	rm -rf .venv
+	rm -f server.log
+	find . -type d -name "__pycache__" -exec rm -rf {} +

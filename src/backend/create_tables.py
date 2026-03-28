@@ -60,6 +60,7 @@ def init_database():
             valor_total DECIMAL(10,2) NOT NULL
         );
         """,
+
         # tabela de Itens da Venda 
         """
         CREATE TABLE IF NOT EXISTS itens_venda (
@@ -83,6 +84,7 @@ def init_database():
         """,
         #=======VIEWS=============
         #junta salgados e bebidas em uma lista so
+        
         """
         CREATE OR REPLACE VIEW vw_estoque_geral AS
         SELECT id_salgado AS id, nome, sabor, valor, quantia_estoque, 'Salgado' AS categoria 
@@ -97,7 +99,7 @@ def init_database():
         CREATE OR REPLACE VIEW vw_estoque_critico AS
         SELECT * FROM vw_estoque_geral WHERE quantia_estoque < 5
         ORDER BY quantia_estoque DESC;
-        """
+        """,
 
         #relatorio financeiro
         """
@@ -108,12 +110,15 @@ def init_database():
             f.origem,
             f.valor,
             f.tipo,
-            COALESCE(c.user, 'Consumidor Final') AS nome_cliente,
+            COALESCE(v.status_pagamento, 'Confirmado') AS status_pagamento,
+            COALESCE(c.user, 'Fabrica/Reabastecer') AS nome_cliente,
             COALESCE(s.user, 'Vendedor/Sistema') AS nome_vendedor
         FROM financeiro f
         LEFT JOIN credentials_customer c ON f.cliente_id = c.id
-        LEFT JOIN credentials_salesman s ON f.vendedor_id = s.id;
-        """,
+        LEFT JOIN credentials_salesman s ON f.vendedor_id = s.id
+        LEFT JOIN vendas v ON (f.origem LIKE 'Venda #%') 
+            AND (v.id_venda = NULLIF(regexp_replace(f.origem, '\D', '', 'g'), '')::INT);
+                """,
 
         #itens q mais foram vendidos
         """
@@ -125,6 +130,22 @@ def init_database():
         FROM itens_venda
         GROUP BY produto_nome, produto_sabor
         ORDER BY total_vendido DESC;
+        """,
+        # verificar dados e pedidos do cliente
+        """
+        CREATE OR REPLACE VIEW vw_historico_pedidos AS
+        SELECT 
+            v.id_venda,
+            v.cliente_id,
+            c."user" AS nome_cliente,
+            v.data_hora,
+            v.valor_total,
+            string_agg(i.produto_nome || ' (' || i.produto_sabor || ') x' || i.quantidade, ', ') AS detalhe_itens
+        FROM vendas v
+        LEFT JOIN credentials_customer c ON v.cliente_id = c.id
+        JOIN itens_venda i ON v.id_venda = i.venda_id
+        GROUP BY v.id_venda, v.cliente_id, c."user", v.data_hora, v.valor_total
+        ORDER BY v.data_hora DESC;
         """
 
     ]

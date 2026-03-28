@@ -134,9 +134,19 @@ def menu_vendedor():
             confirmar = st.checkbox("Confirmar os valores acima", disabled=bloquear_botao)
             
             if st.button("Finalizar Compra", disabled=not confirmar or bloquear_botao):
-                resultado = manager.comprar_da_fabrica(
-                    item_sel.nome, item_sel.sabor,item_sel.categoria ,qtd_compra, preco_custo
-                )
+                id_logado = st.session_state.get("user_id") or st.session_state.get("salesman_id")
+                
+                if not id_logado:
+                    st.error("⚠️ Erro: Não foi possível identificar o vendedor logado.")
+                else:
+                    resultado = manager.comprar_da_fabrica(
+                        item_sel.nome, 
+                        item_sel.sabor,
+                        item_sel.categoria,
+                        qtd_compra, 
+                        preco_custo,
+                        vendedor_id=id_logado 
+                    )
             
                 if resultado == True:
                     st.toast(f"✅ Compra realizada!", icon='💰')

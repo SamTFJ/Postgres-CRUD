@@ -39,15 +39,22 @@ def menu_economia():
     if historico:
         df_financeiro = pd.DataFrame(
             historico,
-            columns=["Data", "Descrição", "Valor (R$)", "Operação", "Vendedor", "Cliente"]
+            columns=["ID", "Data", "Descrição", "Valor (R$)", "Operação", "Status", "Cliente", "Vendedor"]
         )
         
+        # Melhoria visual: Colorir Operação E Status
         def colorir_tipo(val):
-            color = '#155724' if val == 'ENTRADA' else '#721c24'
+            color = '#28a745' if val == 'ENTRADA' else '#dc3545'
+            return f'color: {color}; font-weight: bold'
+            
+        def colorir_status(val):
+            color = '#28a745' if val == 'Confirmado' else '#e67e22' 
             return f'color: {color}; font-weight: bold'
 
         st.dataframe(
-            df_financeiro.style.map(colorir_tipo, subset=['Operação']),
+            df_financeiro.style.map(colorir_tipo, subset=['Operação'])
+                              .map(colorir_status, subset=['Status'])
+                              .format({"Valor (R$)": "{:.2f}"}),
             width="stretch",
             hide_index=True
         )

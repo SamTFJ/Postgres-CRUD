@@ -14,44 +14,42 @@ load_dotenv(".env",override = True)
 
 class dbconnection:
     def __init__(self):
-        # Inicializa os atributos como None para evitar erros caso a conexão falhe
+        # Inicializa os atributos como None
         self.supabase: Client = None
         self.conn = None
         self.cur = None
 
-        # Tenta estabelecer a conexão com o banco de dados
+        # 1. Tenta carregar as variáveis de ambiente do .env primeiro
+        load_dotenv(".env", override=True)
+        
+        url = os.getenv("supabase_url")
+        key = os.getenv("supabase_key")
+        db_url = os.getenv("supabase_db_url")
+
+        # 2. Se não encontrou no .env, tenta pegar do Streamlit Secrets
+        if not url or not key or not db_url:
+            try:
+                # Se estiver rodando via Streamlit Cloud
+                url = st.secrets["supabase_url"]
+                key = st.secrets["supabase_key"]
+                db_url = st.secrets["supabase_db_url"]
+            except Exception:
+                # Se chegar aqui e ainda não tiver os dados, vai dar erro na conexão abaixo
+                pass
+
+        # 3. Estabelece a conexão
         try:
-            # Versão com o postgresql normal
-            # self.conn = psycopg2.connect(
-            #     dbname= os.getenv("db_name"),
-            #     user=os.getenv("db_user"),
-            #     password=os.getenv("db_password"),
-            #     host=os.getenv("db_host"),
-            #     port=os.getenv("db_port")
-            # )
-
-            # Versão com o Supabase
-            # url = os.getenv("supabase_url")
-            # key = os.getenv("supabase_key")
-
-            # Versão compatível com o streamlit
-            url = st.secrets["supabase_url"]
-            key = st.secrets["supabase_key"]
+            if url and key:
+                self.supabase = create_client(url, key)
             
-            self.supabase = create_client(url, key)
-
-            # self.conn = psycopg2.connect(
-            #     os.getenv("supabase_db_url")
-            # )
-
-            self.conn = psycopg2.connect(
-                st.secrets["supabase_db_url"]
-            )
-
-            self.cur = self.conn.cursor()
+            if db_url:
+                self.conn = psycopg2.connect(db_url)
+                self.cur = self.conn.cursor()
+            else:
+                print("\n--> Erro Crítico: Nenhuma credencial de banco de dados encontrada!")
 
         except (Exception, psycopg2.Error) as error:
-            print("\n--> Error while connecting to Supabase: ", error)
+            print("\n--> Error while connecting to Database: ", error)
 
     # Encerrar as conexões com o banco de dados
     def end_connection(self):

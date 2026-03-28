@@ -174,7 +174,7 @@ class EstoqueManager:
                 lista_objetos.append(Bebida(0, d[0], d[1], float(d[3]), 0))
         return lista_objetos
 
-    def comprar_da_fabrica(self, nome, sabor, categoria, quantidade, valor_custo):
+    def comprar_da_fabrica(self, nome, sabor, categoria, quantidade, valor_custo, vendedor_id=None): # Adicionado parâmetro
         db = dbconnection()
         tabela = "salgados" if categoria == "Salgado" else "bebidas"
         custo_total = quantidade * valor_custo
@@ -194,8 +194,8 @@ class EstoqueManager:
         db.conn.commit()
         
         if db.cur.rowcount > 0:
-            origem = f"Compra Fábrica: {quantidade}x {nome} ({sabor})"
-            fin.registrar_movimentacao(origem, custo_total, "SAIDA")
+            origem = f"FÁBRICA: {quantidade}x {nome} ({sabor})"
+            fin.registrar_movimentacao(origem, custo_total, "SAIDA", vendedor_id=vendedor_id) 
             db.end_connection()
             return True
         else:

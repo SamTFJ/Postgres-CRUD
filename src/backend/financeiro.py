@@ -33,29 +33,37 @@ class Financeiro:
 
     def relatorio_financeiro_detalhado(self):
         db = dbconnection()
-        #view mais detalhado para ver relatorio
-        comando = "SELECT data_hora, origem, valor, tipo, nome_vendedor, nome_cliente FROM vw_financeiro_detalhado ORDER BY data_hora DESC;"
+        comando = """
+            SELECT id, data_hora, origem, valor, tipo, status_pagamento, nome_cliente, nome_vendedor FROM vw_financeiro_detalhado 
+            ORDER BY data_hora DESC;
+        """
         dados = db.fetch_all(comando)
         db.end_connection()
         return dados
     
     
-    def registrar_venda_detalhada(self, valor_total, itens_do_pedido, cliente_id=None, vendedor_id=None):
+    def registrar_venda_detalhada(self, valor_total, itens_do_pedido, cliente_id=None, vendedor_id=None, metodo_pagamento=None, status_pagamento=None):
         db = dbconnection()
         try:
-            
-            query_venda = "INSERT INTO vendas (valor_total, cliente_id, vendedor_id) VALUES (%s, %s, %s) RETURNING id_venda;"
-            db.cur.execute(query_venda, (valor_total, cliente_id, vendedor_id))
+            # Insere na tabela vendas
+            query_venda = """
+                INSERT INTO vendas (valor_total, cliente_id, vendedor_id, metodo_pagamento, status_pagamento) 
+                VALUES (%s, %s, %s, %s, %s) 
+                RETURNING id_venda;
+            """
+            db.cur.execute(query_venda, (valor_total, cliente_id, vendedor_id, metodo_pagamento, status_pagamento))
             id_venda = db.cur.fetchone()[0]
 
+            # Insere os itens da venda
             query_item = """
-                INSERT INTO itens_venda (venda_id, produto_nome,produto_sabor, quantidade, preco_unitario)
-                VALUES (%s, %s,%s, %s, %s);
+                INSERT INTO itens_venda (venda_id, produto_nome, produto_sabor, quantidade, preco_unitario)
+                VALUES (%s, %s, %s, %s, %s);
             """
             for item in itens_do_pedido:
-                db.cur.execute(query_item, (id_venda, item['nome'],item['sabor'],item['qtd'], item['preco_unitario']))
+                db.cur.execute(query_item, (id_venda, item['nome'], item['sabor'], item['qtd'], item['preco_unitario']))
             
-            self.registrar_movimentacao(f"Venda #{id_venda}", valor_total, "ENTRADA", cliente_id, vendedor_id)
+            # Registra a entrada no financeiro
+            self.registrar_movimentacao(f"Venda #{id_venda} ({metodo_pagamento})", valor_total, "ENTRADA", cliente_id, vendedor_id)
 
             db.conn.commit()
             return True
@@ -67,8 +75,13 @@ class Financeiro:
             db.end_connection()
 
     def ranking_vendas(self):
-            db = dbconnection()
-            comando = "SELECT * FROM vw_ranking_vendas LIMIT 5;"
-            dados = db.fetch_all(comando)
-            db.end_connection()
-            return dados
+        db = dbconnection()
+        comando = """
+            SELECT produto_nome,  produto_sabor, SUM(quantidade) as qtd_total,SUM(quantidade * preco_unitario) as faturamento_total FROM itens_venda
+            GROUP BY produto_nome, produto_sabor
+            ORDER BY qtd_total DESC
+            LIMIT 5;
+        """
+        dados = db.fetch_all(comando)
+        db.end_connection()
+        return dados
