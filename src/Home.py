@@ -19,7 +19,7 @@ st.set_page_config(
 
 def menuprincipal():
     st.title("Lanchonete SABOR 🥘 ")
-    st.info("Seja bem-vindo! Use o menu lateral para navegar.")
+    st.info("Seja bem-vindo!")
 
     st.divider()
     st.subheader("🍕 Nosso Cardápio")

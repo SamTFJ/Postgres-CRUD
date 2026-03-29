@@ -85,9 +85,9 @@ class EstoqueManager:
         lista_objetos = []
         for d in dados:
             if d[5] == "Salgado":
-                lista_objetos.append(Salgado(d[0], d[1], d[2], float(d[3]), d[4]))
+                lista_objetos.append(Salgado(d[0], d[1], d[2], float(d[3]), d[4], d[6]))
             else:
-                lista_objetos.append(Bebida(d[0], d[1], d[2], float(d[3]), d[4]))
+                lista_objetos.append(Bebida(d[0], d[1], d[2], float(d[3]), d[4], d[6]))
 
         return lista_objetos
     
