@@ -31,25 +31,18 @@ class EstoqueManager:
 
     def listar_salgados(self):
         db = dbconnection()
-        comando = """
-            SELECT id_salgado, nome, sabor, valor, quantia_estoque, 'Salgado' as categoria  
-            FROM salgados ORDER BY quantia_estoque DESC;
-        """
+        comando = "SELECT id_salgado, nome, sabor, valor, quantia_estoque, 'Salgado' as categoria, local_fabricacao FROM salgados"
         dados = db.fetch_all(comando)
         db.end_connection()
-
-        return [Salgado(d[0], d[1], d[2], float(d[3]), d[4]) for d in dados]
+        return [Salgado(d[0], d[1], d[2], float(d[3]), d[4], d[6]) for d in dados]
 
     def listar_bebidas(self):
         db = dbconnection()
-        comando = """
-            SELECT id_bebida, nome, sabor, valor, quantia_estoque, 'Bebida' as categoria 
-            FROM bebidas ORDER BY quantia_estoque DESC;
-        """
+        comando = "SELECT id_bebida, nome, sabor, valor, quantia_estoque, 'Bebida' as categoria, local_fabricacao FROM bebidas"
         dados = db.fetch_all(comando)
         db.end_connection()
-        return [Bebida(d[0], d[1], d[2], float(d[3]), d[4]) for d in dados]
-
+        return [Bebida(d[0], d[1], d[2], float(d[3]), d[4], d[6]) for d in dados]
+    
     def listar_estoque_critico(self):
         db = dbconnection()
         dados = db.fetch_all("SELECT * FROM vw_estoque_critico;")
