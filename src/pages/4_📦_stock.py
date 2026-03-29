@@ -206,9 +206,9 @@ def menu_vendedor():
                 dados = manager.pesquisar_estoque("", "")
 
         if dados:
-            colunas = ["ID", "Nome", "Sabor", "Preço (R$)", "Quantia", "Categoria"]
+            colunas = ["ID", "Nome", "Sabor", "Preço (R$)", "Quantia", "Categoria", "Local Fabricado"]
             dados_formatados = [
-                [obj.id, obj.nome, obj.sabor, float(obj.valor), obj.quantia, obj.categoria]
+                [obj.id, obj.nome, obj.sabor, float(obj.valor), obj.quantia, obj.categoria, obj.local_fabricacao]
                 for obj in dados
             ]
             df = pd.DataFrame(dados_formatados, columns=colunas)
@@ -223,7 +223,7 @@ def menu_vendedor():
         criticos = manager.listar_estoque_critico()
         
         if criticos:
-            colunas = ["ID","Nome","Sabor", "Preço (R$)", "Quantia", "Categoria", "Fabricado em"]
+            colunas = ["ID","Nome","Sabor", "Preço (R$)", "Quantia", "Categoria", "Local Fabricado"]
             df = pd.DataFrame(criticos, columns=colunas) #transforma df de lista para tabela
             st.warning(f"Existem {len(df)} produtos acabando!")
             st.table(df)
