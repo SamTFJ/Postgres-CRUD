@@ -1,4 +1,5 @@
 from src.backend.dbconnection import dbconnection
+import json
 
 class Financeiro:
 
@@ -45,30 +46,25 @@ class Financeiro:
     def registrar_venda_detalhada(self, valor_total, itens_do_pedido, cliente_id=None, vendedor_id=None, metodo_pagamento=None, status_pagamento=None):
         db = dbconnection()
         try:
-            # Insere na tabela vendas
-            query_venda = """
-                INSERT INTO vendas (valor_total, cliente_id, vendedor_id, metodo_pagamento, status_pagamento) 
-                VALUES (%s, %s, %s, %s, %s) 
-                RETURNING id_venda;
-            """
-            db.cur.execute(query_venda, (valor_total, cliente_id, vendedor_id, metodo_pagamento, status_pagamento))
-            id_venda = db.cur.fetchone()[0]
+            # Converte itens para JSONB — a procedure cuida da inserção em vendas, itens_venda e financeiro
+            itens_json = json.dumps([
+                {
+                    "nome": item["nome"],
+                    "sabor": item["sabor"],
+                    "qtd": item["qtd"],
+                    "preco_unitario": float(item["preco_unitario"])
+                }
+                for item in itens_do_pedido
+            ])
 
-            # Insere os itens da venda
-            query_item = """
-                INSERT INTO itens_venda (venda_id, produto_nome, produto_sabor, quantidade, preco_unitario)
-                VALUES (%s, %s, %s, %s, %s);
-            """
-            for item in itens_do_pedido:
-                db.cur.execute(query_item, (id_venda, item['nome'], item['sabor'], item['qtd'], item['preco_unitario']))
-            
-            # Registra a entrada no financeiro
-            self.registrar_movimentacao(f"Venda #{id_venda} ({metodo_pagamento})", valor_total, "ENTRADA", cliente_id, vendedor_id)
-
+            db.cur.execute(
+                "CALL sp_registrar_venda(%s, %s, %s, %s, %s, %s::jsonb);",
+                (valor_total, cliente_id, vendedor_id, metodo_pagamento, status_pagamento, itens_json)
+            )
             db.conn.commit()
             return True
         except Exception as e:
-            print(f"Erro na transação: {e}")
+            print(f"Erro na stored procedure sp_registrar_venda: {e}")
             db.conn.rollback()
             return False
         finally:
@@ -81,6 +77,16 @@ class Financeiro:
             GROUP BY produto_nome, produto_sabor
             ORDER BY qtd_total DESC
             LIMIT 5;
+        """
+        dados = db.fetch_all(comando)
+        db.end_connection()
+        return dados
+
+    def relatorio_mensal_vendedor(self):
+        db = dbconnection()
+        comando = """
+            SELECT vendedor, mes, total_vendas, faturamento_total, ticket_medio
+            FROM vw_relatorio_mensal_vendedor;
         """
         dados = db.fetch_all(comando)
         db.end_connection()

@@ -68,11 +68,11 @@ def menu_vendedor():
                 sabor = st.text_input("Sabor")
                 valor = st.number_input("Valor do Salgado (R$)", min_value = 0.0, step = 0.50)
                 quantia = st.number_input("Quantia Inicial para o Estoque", min_value = 0, step = 1)
-                
+                local = st.text_input("Local de Fabricação", value="Mari")
 
                 if st.form_submit_button("Adicionar Salgado"):
                     if nome.strip() and sabor.strip() and valor > 0:
-                        if manager.adicionar_salgado(nome,sabor,valor,quantia):
+                        if manager.adicionar_salgado(nome, sabor, valor, quantia, local.strip() or "Mari"):
                             st.success(f"{nome} adicionado com sucesso!")
                         else:
                             st.error("❌ Erro ao adicionar salgado!")
@@ -86,10 +86,11 @@ def menu_vendedor():
                 saborb = st.text_input("Sabor")
                 valorb = st.number_input("Preço (R$)", min_value=0.0, step=0.50)
                 quantiab = st.number_input("Quantia Inicial para o Estoque", min_value=0, step=1)
+                localb = st.text_input("Local de Fabricação", value="Mari")
 
                 if st.form_submit_button("Adicionar Bebida"):
                     if nomeb.strip() and saborb.strip() and valorb > 0:
-                        if manager.adicionar_bebida(nomeb,saborb,valorb,quantiab):
+                        if manager.adicionar_bebida(nomeb, saborb, valorb, quantiab, localb.strip() or "Mari"):
                             st.success(f"{nomeb} foi adicionada com sucesso")
                         else:
                             st.error("❌ Falha ao acidionar bebida!")
@@ -168,37 +169,51 @@ def menu_vendedor():
         st.divider()
 
         st.write("Buscar produto Específico")
-        col1,col2 = st.columns(2)
+        col1, col2 = st.columns(2)
         with col1:
             busca_nome = st.text_input("Nome do item", placeholder="Ex: Coxinha")
         with col2:
             busca_sabor = st.text_input("Sabor", placeholder="Ex: Frango")
 
-        # a exibiçãp é baseada na escolha das pills e da busca
+        st.write("Filtrar por Preço (R$)")
+        col_pmin, col_pmax = st.columns(2)
+        with col_pmin:
+            preco_min = st.number_input("Preço mínimo", min_value=0.0, value=0.0, step=0.50, key="pmin_stock")
+        with col_pmax:
+            preco_max = st.number_input("Preço máximo", min_value=0.0, value=0.0, step=0.50, key="pmax_stock",
+                                        help="Deixe 0 para não limitar")
 
-        if busca_nome or busca_sabor:
-            dados = manager.pesquisar_estoque(busca_nome,busca_sabor)
+        apenas_mari = st.checkbox("Mostrar apenas produtos fabricados em Mari")
+
+        preco_min_filtro = preco_min if preco_min > 0 else None
+        preco_max_filtro = preco_max if preco_max > 0 else None
+
+        usa_filtro_avancado = busca_nome or busca_sabor or preco_min_filtro or preco_max_filtro or apenas_mari
+
+        if usa_filtro_avancado:
+            dados = manager.pesquisar_estoque(
+                busca_nome, busca_sabor,
+                preco_min=preco_min_filtro,
+                preco_max=preco_max_filtro,
+                apenas_mari=apenas_mari
+            )
         else:
-            #se nao ha busca por texto, filtra por categoria
             if filtro_categoria == "Salgados":
                 dados = manager.listar_salgados()
             elif filtro_categoria == "Bebidas":
                 dados = manager.listar_bebidas()
             else:
                 dados = manager.pesquisar_estoque("", "")
-        if dados:
-            colunas = ["ID", "Nome", "Sabor","Preço (R$)", "Quantia", "Categoria"] #dataframe
 
-            # lista de listas c/ atribusos de cada objeto
+        if dados:
+            colunas = ["ID", "Nome", "Sabor", "Preço (R$)", "Quantia", "Categoria"]
             dados_formatados = [
-                [obj.id, obj.nome, obj.sabor, obj.valor, obj.quantia, obj.categoria] 
+                [obj.id, obj.nome, obj.sabor, float(obj.valor), obj.quantia, obj.categoria]
                 for obj in dados
             ]
-
-            df = pd.DataFrame(dados_formatados, columns=colunas) #transforma df de lista para tabela
+            df = pd.DataFrame(dados_formatados, columns=colunas)
             st.write(f"Exibindo {len(df)} item(ns):")
             st.dataframe(df, width="stretch")
-            
         else:
             st.info("Nenhum item encontrado com esses filtros até o momento")
 
@@ -208,7 +223,7 @@ def menu_vendedor():
         criticos = manager.listar_estoque_critico()
         
         if criticos:
-            colunas = ["ID","Nome","Sabor", "Preço (R$)", "Quantia", "Categoria"]
+            colunas = ["ID","Nome","Sabor", "Preço (R$)", "Quantia", "Categoria", "Fabricado em"]
             df = pd.DataFrame(criticos, columns=colunas) #transforma df de lista para tabela
             st.warning(f"Existem {len(df)} produtos acabando!")
             st.table(df)

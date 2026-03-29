@@ -20,29 +20,54 @@ st.set_page_config(
 
 def menu_vendedor():
     st.title("🧑‍💼 Menu Vendedor")
-    st.subheader("🏆 Top 5 Itens Mais Vendidos")
-    
-    dados_ranking = fin.ranking_vendas()
-    
-    if dados_ranking:
-        df_ranking = pd.DataFrame(
-            dados_ranking, 
-            columns=["Produto", "Sabor", "Qtd Vendida", "Faturamento (R$)"]
-        )
-        
-       
-        st.write("#### Detalhes")
-        st.dataframe(df_ranking, width="stretch", hide_index=True)
-            
-        st.divider()
 
-        df_ranking["Produto Completo"] = df_ranking["Produto"] + " (" + df_ranking["Sabor"] + ")"
+    aba_ranking, aba_mensal = st.tabs(["🏆 Ranking de Produtos", "📅 Relatório Mensal"])
 
-        st.write("#### Volume de Vendas")
-        st.bar_chart(data=df_ranking, x="Produto Completo", y="Qtd Vendida", color="#054c7c")
+    with aba_ranking:
+        st.subheader("🏆 Top 5 Itens Mais Vendidos")
 
-    else:
-        st.info("Ainda não há dados de vendas suficientes para gerar o ranking.")
+        dados_ranking = fin.ranking_vendas()
+
+        if dados_ranking:
+            df_ranking = pd.DataFrame(
+                dados_ranking,
+                columns=["Produto", "Sabor", "Qtd Vendida", "Faturamento (R$)"]
+            )
+
+            st.write("#### Detalhes")
+            st.dataframe(df_ranking, width="stretch", hide_index=True)
+
+            st.divider()
+
+            df_ranking["Produto Completo"] = df_ranking["Produto"] + " (" + df_ranking["Sabor"] + ")"
+
+            st.write("#### Volume de Vendas")
+            st.bar_chart(data=df_ranking, x="Produto Completo", y="Qtd Vendida", color="#054c7c")
+        else:
+            st.info("Ainda não há dados de vendas suficientes para gerar o ranking.")
+
+    with aba_mensal:
+        st.subheader("📅 Relatório Mensal de Vendas por Vendedor")
+
+        dados_mensal = fin.relatorio_mensal_vendedor()
+
+        if dados_mensal:
+            df_mensal = pd.DataFrame(
+                dados_mensal,
+                columns=["Vendedor", "Mês", "Total de Vendas", "Faturamento (R$)", "Ticket Médio (R$)"]
+            )
+            df_mensal["Faturamento (R$)"] = df_mensal["Faturamento (R$)"].map("R$ {:.2f}".format)
+            df_mensal["Ticket Médio (R$)"] = df_mensal["Ticket Médio (R$)"].map("R$ {:.2f}".format)
+
+            meses_disponiveis = df_mensal["Mês"].unique().tolist()
+            mes_selecionado = st.selectbox("Filtrar por mês", ["Todos"] + meses_disponiveis)
+
+            if mes_selecionado != "Todos":
+                df_mensal = df_mensal[df_mensal["Mês"] == mes_selecionado]
+
+            st.dataframe(df_mensal, width="stretch", hide_index=True)
+        else:
+            st.info("Ainda não há vendas registradas para gerar o relatório mensal.")
 
 
 if not st.session_state.get("valid2", False):

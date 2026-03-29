@@ -127,13 +127,22 @@ def menucliente():
         with col_f3:
             busca_sabor = st.text_input("Sabor", placeholder="Ex: Frango")
 
+        col_pmin, col_pmax = st.columns(2)
+        with col_pmin:
+            preco_min = st.number_input("Preço mínimo (R$)", min_value=0.0, value=0.0, step=0.50, key="pmin_cust")
+        with col_pmax:
+            preco_max = st.number_input("Preço máximo (R$)", min_value=0.0, value=0.0, step=0.50, key="pmax_cust",
+                                        help="Deixe 0 para não limitar")
+
         if cat_filtro is None: cat_filtro = "Todos"
 
         itens_exibidos = [
-            i for i in itens_estoque 
+            i for i in itens_estoque
             if (cat_filtro == "Todos" or i.categoria == cat_filtro) and
                (busca_nome.lower() in i.nome.lower()) and
-               (busca_sabor.lower() in i.sabor.lower())
+               (busca_sabor.lower() in i.sabor.lower()) and
+               (preco_min == 0.0 or float(i.valor) >= preco_min) and
+               (preco_max == 0.0 or float(i.valor) <= preco_max)
         ]
 
         st.divider()

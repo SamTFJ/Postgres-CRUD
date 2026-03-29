@@ -10,22 +10,22 @@ class EstoqueManager:
 
     ##=========== MÉTODOS ============
     
-    def _adicionar_item(self, tabela, nome, sabor, valor, quantia):
+    def _adicionar_item(self, tabela, nome, sabor, valor, quantia, local_fabricacao="Mari"):
         """Evitar repetição entre salgados e bebidas"""
         db = dbconnection()
-        comando = f"INSERT INTO {tabela} (nome, sabor, valor, quantia_estoque) VALUES (%s, %s, %s, %s);"
-        parametros = (nome, sabor, valor, quantia)
+        comando = f"INSERT INTO {tabela} (nome, sabor, valor, quantia_estoque, local_fabricacao) VALUES (%s, %s, %s, %s, %s);"
+        parametros = (nome, sabor, valor, quantia, local_fabricacao)
         sucesso = db.execute_command(comando, parametros)
         db.end_connection()
         return sucesso
 
     ##=========== CADASTRO DE ALIMENTOS E BEBIDAS ============
 
-    def adicionar_salgado(self, nome, sabor, valor, quantia):
-        return self._adicionar_item("salgados", nome, sabor, valor, quantia)
+    def adicionar_salgado(self, nome, sabor, valor, quantia, local_fabricacao="Mari"):
+        return self._adicionar_item("salgados", nome, sabor, valor, quantia, local_fabricacao)
 
-    def adicionar_bebida(self, nome, sabor, valor, quantia):
-        return self._adicionar_item("bebidas", nome, sabor, valor, quantia)
+    def adicionar_bebida(self, nome, sabor, valor, quantia, local_fabricacao="Mari"):
+        return self._adicionar_item("bebidas", nome, sabor, valor, quantia, local_fabricacao)
 
     ##================ BUSCA DE ITENS / RELATORIOS ========================
 
@@ -56,15 +56,30 @@ class EstoqueManager:
         db.end_connection()
         return dados
 
-    def pesquisar_estoque(self, nome_busca, sabor_busca):
+    def pesquisar_estoque(self, nome_busca, sabor_busca, preco_min=None, preco_max=None, apenas_mari=False):
         db = dbconnection()
-        comando = """
-            SELECT * FROM vw_estoque_geral 
-            WHERE nome ILIKE %s AND sabor ILIKE %s
+        # vw_estoque_geral agora expõe: id, nome, sabor, valor, quantia_estoque, categoria, local_fabricacao
+        filtros = ["nome ILIKE %s", "sabor ILIKE %s"]
+        parametros = [f"%{nome_busca}%", f"%{sabor_busca}%"]
+
+        if preco_min is not None:
+            filtros.append("valor >= %s")
+            parametros.append(preco_min)
+        if preco_max is not None:
+            filtros.append("valor <= %s")
+            parametros.append(preco_max)
+        if apenas_mari:
+            filtros.append("local_fabricacao ILIKE %s")
+            parametros.append("Mari")
+
+        where_clause = " AND ".join(filtros)
+        comando = f"""
+            SELECT id, nome, sabor, valor, quantia_estoque, categoria, local_fabricacao
+            FROM vw_estoque_geral
+            WHERE {where_clause}
             ORDER BY quantia_estoque DESC;
         """
-        parametros = (f"%{nome_busca}%", f"%{sabor_busca}%")
-        dados = db.fetch_all(comando, parametros)
+        dados = db.fetch_all(comando, tuple(parametros))
         db.end_connection()
 
         lista_objetos = []
